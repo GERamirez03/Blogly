@@ -1,7 +1,7 @@
 """Blogly application."""
 
 from flask import Flask, request, redirect, render_template
-from models import db, connect_db, User
+from models import db, connect_db, User, Post
 from flask_debugtoolbar import DebugToolbarExtension
 
 app = Flask(__name__)
@@ -17,6 +17,7 @@ connect_db(app)
 
 # Confused about why I need this, but it seemed to fix the issues I had with getting the app to run...
 with app.app_context():
+    # db.init_app(app)
     db.create_all()
 
 @app.route('/')
@@ -85,7 +86,82 @@ def handle_edit_user(user_id):
 def handle_delete_user(user_id):
     """Processes deletion of user with id user_id. Redirects to list of all users."""
 
+    # Check if user exists with this line
+    user = User.query.get_or_404(user_id)
+
+
+    # Assuming user exists, delete them
     User.query.filter_by(id=user_id).delete()
     db.session.commit()
 
     return redirect('/users')
+
+@app.route('/users/<int:user_id>/posts/new')
+def show_new_post_form(user_id):
+    """Show form to add a post for the user specified."""
+
+    user = User.query.get_or_404(user_id)
+
+    return render_template('createPost.html', user=user)
+
+@app.route('/users/<int:user_id>/posts/new', methods=["POST"])
+def handle_post_submission(user_id):
+    """Handle the addition of a new post for specified user and redirect to user's details page."""
+
+    user = User.query.get_or_404(user_id)
+    
+    title = request.form['title']
+    content = request.form['content']
+    created_by = user.id
+
+    post = Post(title=title, content=content, created_by=created_by)
+
+    db.session.add(post)
+    db.session.commit()
+
+    return redirect(f'/users/{user_id}')
+
+@app.route('/posts/<int:post_id>')
+def show_post(post_id):
+    """Show the specified post, with buttons to edit and delete it."""
+
+    post = Post.query.get_or_404(post_id)
+    return render_template('postDetails.html', post=post)
+
+@app.route('/posts/<int:post_id>/edit')
+def show_edit_post_form(post_id):
+    """Show form to edit the specified post, with buttons to cancel and save."""
+
+    post = Post.query.get_or_404(post_id)
+    return render_template('editPost.html', post=post)
+
+@app.route('/posts/<int:post_id>/edit', methods=["POST"])
+def handle_edit_submission(post_id):
+    """Handle submitted edits to specified post and redirect to that post's details page."""
+
+    post = Post.query.get_or_404(post_id)
+    user = post.creator.id
+
+    post.title = request.form['title']
+    post.content = request.form['content']
+    post.created_by = user
+
+    db.session.add(post)
+    db.session.commit()
+
+    return redirect(f'/posts/{post_id}')
+
+@app.route('/posts/<int:post_id>/delete', methods=["POST"])
+def handle_post_deletion(post_id):
+    """Handle deletion of specified post and redirect to creator's details page."""
+
+    # Check if post exists with this line
+    post = Post.query.get_or_404(post_id)
+
+    # Assuming the post exists, grab the creator's id and delete the post
+    user_id = post.creator.id
+
+    Post.query.filter_by(id=post_id).delete()
+    db.session.commit()
+
+    return redirect(f'/users/{user_id}')
