@@ -55,4 +55,39 @@ class Post(db.Model):
     )
 
     creator = db.relationship('User', backref='posts')
+
+class Tag(db.Model):
+    """Tag for a post."""
+
+    __tablename__ = "tags"
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True,
+        autoincrement=True)
     
+    name = db.Column(
+        db.Text,
+        nullable=False,
+        unique=True)
+    
+    posts = db.relationship('Post',
+                            secondary='posts_tags',
+                            backref='tags') # does using the POSTS_tags table mean that this is supposed to start in the POSTS class?
+    
+
+class PostTag(db.Model):
+    """Relation of posts to the tags that they have."""
+    
+    __tablename__ = "posts_tags"
+
+    post_id = db.Column(
+        db.Integer,
+        db.ForeignKey("posts.id"),
+        primary_key=True)
+    
+    tag_id = db.Column(
+        db.Integer,
+        db.ForeignKey("tags.id"),
+        primary_key=True)
+

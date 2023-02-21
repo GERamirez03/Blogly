@@ -12,6 +12,19 @@
 
         <p>Content <input type="text" name="content" id="content-input"></p>
 
+        <p><b>Tags: </b></p>
+
+        {% for tag in tags %} 
+
+            <input type="checkbox" name="tag" value="{{tag.name}}" id="{{tag.name}}-checkbox"><label for="tag">{{tag.name}}</label><br>
+                        <!-- if im understanding correctly, i need to make all the tags checkboxes on BOTH forms have a name of "tag" to have them be sent under the "tag" key for processing in app.py -->
+
+                <!-- my concern now is if it's allowed to have multiple inputs with a name of "tag" by HTML's rules... also labels are all for="tag"... -->
+
+            <!-- may be faster to pass in the list of (tag names, tag IDs) tuples instead of list of tag objects -->
+
+        {% endfor %}
+
         <button type="submit">Add Post</button>
 
     </form>

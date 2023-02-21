@@ -17,6 +17,27 @@
         <input type="text" placeholder="Enter post content" name="content" value="{{post.content}}" required>
         <br>
 
+        
+        <p><b>Tags: </b></p>
+
+        {% for tag in tags %} 
+
+            <!-- need to check if tag is already applied to this post or not... -->
+
+            {% if tag in post.tags %} 
+            <input type="checkbox" name="tag" value="{{tag.name}}" id="{{tag.name}}-checkbox" checked><label for="tag">{{tag.name}}</label><br>
+            <!-- if im understanding correctly, i need to make all the tags checkboxes on BOTH forms have a name of "tag" to have them be sent under the "tag" key for processing in app.py -->
+
+            {% else %} 
+            <input type="checkbox" name="tag" value="{{tag.name}}" id="{{tag.name}}-checkbox"><label for="tag">{{tag.name}}</label><br>
+
+            <!-- may be faster to pass in the list of (tag names, tag IDs) tuples instead of list of tag objects -->
+
+            {% endif %}
+
+        {% endfor %}
+
+
         <a href="/users/{{post.creator.id}}">Cancel</a>
         <button type="submit">Save</button>
 

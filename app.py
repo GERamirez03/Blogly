@@ -1,7 +1,7 @@
 """Blogly application."""
 
 from flask import Flask, request, redirect, render_template
-from models import db, connect_db, User, Post
+from models import db, connect_db, User, Post, Tag, PostTag
 from flask_debugtoolbar import DebugToolbarExtension
 
 app = Flask(__name__)
@@ -114,9 +114,32 @@ def handle_post_submission(user_id):
     content = request.form['content']
     created_by = user.id
 
+    # note that the values of the checkboxes are just the strings of the tag names! also, im assuming this only fetches the tag names of those whose boxes were checked at submission........
+    tag_strings = request.form.getlist('tag')
+
     post = Post(title=title, content=content, created_by=created_by)
 
+    # add and commit post to database before we add and commit tags to prevent database from rejecting the new posts_tags entries
     db.session.add(post)
+    db.session.commit()
+
+    # list of PostTag objects based on submitted post and its selected tags
+    post_tags = []
+
+    # for each tag specified in the checkboxes
+    for tag_string in tag_strings:
+
+        # grab reference to the corresponding tag object using the tag's name string and the .one() method since tag names are unique
+        tag = Tag.query.filter_by(name=tag_string).one()
+
+        # create a PostTag object with the new post's ID and the tag object's ID
+        post_tag = PostTag(post_id=post.id, tag_id=tag.id)
+
+        # append the PostTag object created to the list of PostTag objects
+        post_tags.append(post_tag)
+
+    # add and commit all new PostTag objects/relationships to the database
+    db.session.add_all(post_tags)
     db.session.commit()
 
     return redirect(f'/users/{user_id}')
@@ -146,8 +169,58 @@ def handle_edit_submission(post_id):
     post.content = request.form['content']
     post.created_by = user
 
+    # note that the values of the checkboxes are just the strings of the tag names! also, im assuming this only fetches the tag names of those whose boxes were checked at submission........
+    tag_strings = request.form.getlist('tag')
+
     db.session.add(post)
     db.session.commit()
+
+    # delete all of the PostTag relationships associated with this post and then re-do them from scratch
+    PostTag.query.filter_by(post_id=post.id).delete()
+    db.session.commit()
+
+    # list of PostTag objects based on submitted post and its selected tags
+    post_tags = []
+
+    # for each tag specified in the checkboxes
+    for tag_string in tag_strings:
+
+        # grab reference to the corresponding tag object using the tag's name string and the .one() method since tag names are unique
+        tag = Tag.query.filter_by(name=tag_string).one()
+
+        # create a PostTag object with the new post's ID and the tag object's ID
+        post_tag = PostTag(post_id=post.id, tag_id=tag.id)
+
+        # append the PostTag object created to the list of PostTag objects
+        post_tags.append(post_tag)
+
+    # add and commit all new PostTag objects/relationships to the database
+    db.session.add_all(post_tags)
+    db.session.commit()
+
+    # # for each tag specified in the checkboxes
+    # for tag_string in tag_strings:
+
+    #     # grab reference to the corresponding tag object using the tag's name string and the .one() method since tag names are unique
+    #     tag = Tag.query.filter_by(name=tag_string).one()
+
+    #     if tag in post.tags: pass # in this first case, the tag checked is already in the database. no change.
+
+    #     if tag not in post.tags: pass # in this second case, the tag was not already on that post but now is. we need to create the new relationship
+
+    #     I don't even have a reference to the tags that were once on but are now to turn off... would need to iterate over post.tags and compare with tag_strings
+
+    #     # if a tag wasnt previously that post AND its not in this list of tag strings, we can ignore it altogether since there is no change.
+
+    #     # create a PostTag object with the new post's ID and the tag object's ID
+    #     post_tag = PostTag(post_id=post.id, tag_id=tag.id)
+
+    #     # append the PostTag object created to the list of PostTag objects
+    #     post_tags.append(post_tag)
+
+    # add and commit all new PostTag objects/relationships to the database
+    # db.session.add_all(post_tags)
+    # db.session.commit()
 
     return redirect(f'/posts/{post_id}')
 
@@ -165,3 +238,39 @@ def handle_post_deletion(post_id):
     db.session.commit()
 
     return redirect(f'/users/{user_id}')
+
+@app.route('/tags')
+def show_tags():
+    """Show list of tags, each of which is a link to its detail page."""
+    pass
+
+@app.route('/tags/<int:tag_id>')
+def show_tag_details(tag_id):
+    """Show details about the specified tag, including a link list of posts with that tag. Also has links to edit or delete the tag."""
+    # posts associated with that tag will need to use the "through" or secondary relationship... many-to-many
+    pass
+
+@app.route('/tags/new')
+def show_new_tag_form():
+    """Show the form to create a new tag, with buttons to submit or cancel, both of which redirect to tags page."""
+    pass
+
+@app.route('/tags/new', methods=["POST"])
+def handle_new_tag():
+    """Process submission of new tag and redirect to tags page."""
+    pass
+
+@app.route('/tags/<int:tag_id>/edit')
+def show_edit_tag_form(tag_id):
+    """Show edit form for the specified tag."""
+    pass
+
+@app.route('/tags/<int:tag_id>/edit', methods=["POST"])
+def show_edit_tag_form(tag_id):
+    """Process submitted edits for the specified tag and redirect to tags page."""
+    pass
+
+@app.route('/tags/<int:tag_id>/delete', methods=["POST"])
+def handle_tag_deletion(tag_id):
+    """Process deletion of the specified tag and redirect to tags page."""
+    pass

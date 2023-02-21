@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %} Edit Tag {% endblock %}
+
+{% block content %}
+
+    <h2>Edit a Tag</h2>
+
+
+    <form action="/tags/{{tag.id}}/edit" method="post">
+        <!-- need to figure out how to pass tag object into here... also probably better practice to pass in tag's ID and NAME instead of whole tag object. -->
+
+        <p>Name <input type="text" name="tag_name" id="tag_name_input" value="{{tag.name}}"></p>
+
+        <button type="submit">Submit Edit</button>
+
+    </form>
+
+    <p><a href="/tags">Cancel</a></p>
+
+{% endblock %}
