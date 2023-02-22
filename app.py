@@ -16,9 +16,10 @@ debug = DebugToolbarExtension(app)
 connect_db(app)
 
 # Confused about why I need this, but it seemed to fix the issues I had with getting the app to run...
-with app.app_context():
-    # db.init_app(app)
-    db.create_all()
+# with app.app_context():
+#     # db.init_app(app)
+#     db.drop_all()
+#     db.create_all()
 
 @app.route('/')
 def redirect_to_users():
@@ -101,8 +102,9 @@ def show_new_post_form(user_id):
     """Show form to add a post for the user specified."""
 
     user = User.query.get_or_404(user_id)
+    tags = Tag.query.all()
 
-    return render_template('createPost.html', user=user)
+    return render_template('createPost.html', user=user, tags=tags)
 
 @app.route('/users/<int:user_id>/posts/new', methods=["POST"])
 def handle_post_submission(user_id):
@@ -156,7 +158,9 @@ def show_edit_post_form(post_id):
     """Show form to edit the specified post, with buttons to cancel and save."""
 
     post = Post.query.get_or_404(post_id)
-    return render_template('editPost.html', post=post)
+    tags = Tag.query.all()
+
+    return render_template('editPost.html', post=post, tags=tags)
 
 @app.route('/posts/<int:post_id>/edit', methods=["POST"])
 def handle_edit_submission(post_id):
@@ -198,29 +202,9 @@ def handle_edit_submission(post_id):
     db.session.add_all(post_tags)
     db.session.commit()
 
-    # # for each tag specified in the checkboxes
-    # for tag_string in tag_strings:
-
-    #     # grab reference to the corresponding tag object using the tag's name string and the .one() method since tag names are unique
-    #     tag = Tag.query.filter_by(name=tag_string).one()
-
-    #     if tag in post.tags: pass # in this first case, the tag checked is already in the database. no change.
-
-    #     if tag not in post.tags: pass # in this second case, the tag was not already on that post but now is. we need to create the new relationship
-
-    #     I don't even have a reference to the tags that were once on but are now to turn off... would need to iterate over post.tags and compare with tag_strings
-
-    #     # if a tag wasnt previously that post AND its not in this list of tag strings, we can ignore it altogether since there is no change.
-
-    #     # create a PostTag object with the new post's ID and the tag object's ID
-    #     post_tag = PostTag(post_id=post.id, tag_id=tag.id)
-
-    #     # append the PostTag object created to the list of PostTag objects
-    #     post_tags.append(post_tag)
-
-    # add and commit all new PostTag objects/relationships to the database
-    # db.session.add_all(post_tags)
-    # db.session.commit()
+    # deleting all of the PostTag relationships upfront and then just creating the ones that now exist simplifies
+    # the process to update a post's tags. this way, we don't need to account for the four cases of a tag
+    # being turned on or off from initially being on or off.
 
     return redirect(f'/posts/{post_id}')
 
@@ -242,35 +226,64 @@ def handle_post_deletion(post_id):
 @app.route('/tags')
 def show_tags():
     """Show list of tags, each of which is a link to its detail page."""
-    pass
+
+    tags = Tag.query.all()
+    return render_template('tags.html', tags=tags)
 
 @app.route('/tags/<int:tag_id>')
 def show_tag_details(tag_id):
     """Show details about the specified tag, including a link list of posts with that tag. Also has links to edit or delete the tag."""
     # posts associated with that tag will need to use the "through" or secondary relationship... many-to-many
-    pass
+    
+    tag = Tag.query.get_or_404(tag_id)
+    return render_template('tagDetails.html', tag=tag)
 
 @app.route('/tags/new')
 def show_new_tag_form():
     """Show the form to create a new tag, with buttons to submit or cancel, both of which redirect to tags page."""
-    pass
+
+    return render_template('createTag.html')
 
 @app.route('/tags/new', methods=["POST"])
 def handle_new_tag():
     """Process submission of new tag and redirect to tags page."""
-    pass
+
+    tag_name = request.form['tag_name']
+    tag = Tag(name=tag_name)
+
+    db.session.add(tag)
+    db.session.commit()
+
+    return redirect('/tags')
 
 @app.route('/tags/<int:tag_id>/edit')
 def show_edit_tag_form(tag_id):
     """Show edit form for the specified tag."""
-    pass
+
+    tag = Tag.query.get_or_404(tag_id)
+    return render_template('editTag.html', tag=tag)
 
 @app.route('/tags/<int:tag_id>/edit', methods=["POST"])
-def show_edit_tag_form(tag_id):
+def handle_tag_edits(tag_id):
     """Process submitted edits for the specified tag and redirect to tags page."""
-    pass
+
+    tag = Tag.query.get_or_404(tag_id)
+    tag_name = request.form['tag_name']
+
+    tag.name = tag_name
+
+    db.session.add(tag)
+    db.session.commit()
+
+    return redirect('/tags')
 
 @app.route('/tags/<int:tag_id>/delete', methods=["POST"])
 def handle_tag_deletion(tag_id):
     """Process deletion of the specified tag and redirect to tags page."""
-    pass
+    
+    tag = Tag.query.get_or_404(tag_id)
+
+    Tag.query.filter_by(id=tag_id).delete()
+    db.session.commit()
+
+    return redirect('/tags')

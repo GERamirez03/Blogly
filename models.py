@@ -75,6 +75,9 @@ class Tag(db.Model):
                             secondary='posts_tags',
                             backref='tags') # does using the POSTS_tags table mean that this is supposed to start in the POSTS class?
     
+    postTags = db.relationship('PostTag', backref='tag', passive_deletes=True)
+    
+# I need help with implementing a cascading delete so that when a tag gets deleted, the rows of PostTag with that tag also get deleted.
 
 class PostTag(db.Model):
     """Relation of posts to the tags that they have."""
@@ -88,6 +91,11 @@ class PostTag(db.Model):
     
     tag_id = db.Column(
         db.Integer,
-        db.ForeignKey("tags.id"),
+        db.ForeignKey("tags.id"), on_delete='CASCADE',
         primary_key=True)
+    
+    tags = db.relationship('Tag', cascade="all,delete", backref="post_tags", passive_deletes=True)
 
+# I need help with on cascade, deleting the relevant relationships...
+# eg Delete a tag, delete the PostTags that reference it
+# eg Delete a post, delete the PostTags that reference it
